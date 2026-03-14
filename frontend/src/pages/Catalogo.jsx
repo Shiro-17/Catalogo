@@ -1,145 +1,90 @@
 import { useEffect, useState, useContext } from 'react';
-import { apiCatalogo } from '../api/axios';
+import { apiCatalogo, apiReservas } from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
-import { Plus, Edit, Trash2, Package, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, X, Send } from 'lucide-react';
 
 const Catalogo = () => {
   const [productos, setProductos] = useState([]);
-  const { user } = useContext(AuthContext); // Extraemos al usuario y su rol
-
-  // Estados para el Modal de Agregar
+  const { user } = useContext(AuthContext);
   const [showModal, setShowModal] = useState(false);
-  const [nuevaPieza, setNuevaPieza] = useState({
-    nombre_pieza: '',
-    descripcion: '',
-    cantidad_stock: 0
-  });
+  const [nuevaPieza, setNuevaPieza] = useState({ nombre_pieza: '', descripcion: '', cantidad_stock: 0 });
 
-  // 1. Cargar productos al iniciar la pantalla
-  useEffect(() => {
-    cargarProductos();
-  }, []);
+  useEffect(() => { cargarProductos(); }, []);
 
   const cargarProductos = async () => {
     try {
       const res = await apiCatalogo.get('/');
       setProductos(res.data);
-    } catch (err) {
-      console.error("Error al cargar catálogo:", err);
-    }
+    } catch (err) { console.error("Error al cargar catálogo:", err); }
   };
 
-  // 2. Función para Guardar una nueva pieza (Solo Auxiliar)
+  const solicitarPieza = async (idPieza) => {
+    try {
+      await apiReservas.post('/', { id_pieza: idPieza, cantidad_solicitada: 1 });
+      alert("✅ Vale generado. Revisa la sección de Reservas.");
+    } catch (err) { alert("❌ Error al solicitar pieza."); }
+  };
+
   const handleGuardar = async (e) => {
     e.preventDefault();
     try {
       await apiCatalogo.post('/', nuevaPieza);
-      setShowModal(false); // Cerramos modal
-      setNuevaPieza({ nombre_pieza: '', descripcion: '', cantidad_stock: 0 }); // Limpiamos formulario
-      cargarProductos(); // Refrescamos la lista
-      alert("¡Refacción guardada con éxito!");
-    } catch (err) {
-      alert("Error al guardar: " + (err.response?.data?.message || "Servidor no responde"));
-    }
+      setShowModal(false);
+      setNuevaPieza({ nombre_pieza: '', descripcion: '', cantidad_stock: 0 });
+      cargarProductos();
+      alert("✨ Refacción registrada correctamente.");
+    } catch (err) { alert("Error al guardar."); }
   };
-
-  const solicitarPieza = async (idPieza) => {
-  try {
-        // Mandamos el ID de la pieza al puerto 3003
-        await apiReservas.post('/', { id_pieza: idPieza, cantidad_solicitada: 1 });
-        alert("¡Vale generado! Revisa la sección de Reservas.");
-    } catch (err) {
-        alert("Error al solicitar pieza.");
-    }};
 
   return (
     <div style={styles.container}>
-      {/* Encabezado dinámico */}
       <header style={styles.header}>
         <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Package color="#2563eb" /> Catálogo de Inventario
+          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Package size={30} /> INVENTARIO DE REFACCIONES
           </h2>
-          <p>Bienvenido, <strong>{user?.nombre}</strong> — Rol: <span style={styles.badge}>{user?.rol}</span></p>
+          <p style={{ color: '#6b7280', marginTop: '5px' }}>Gestión centralizada de stock y suministros</p>
         </div>
-        
-        {/* REGLA DE NEGOCIO: Solo el Auxiliar ve el botón de Agregar */}
         {user?.rol === 'auxiliar' && (
           <button onClick={() => setShowModal(true)} style={styles.btnAgregar}>
-            <Plus size={18} /> Nueva Refacción
+            <Plus size={20} /> AGREGAR REFACCIÓN
           </button>
         )}
       </header>
 
-      {/* Cuadrícula de productos */}
       <div style={styles.grid}>
-        {productos.length > 0 ? (
-          productos.map(item => (
-            <div key={item.id} style={styles.card}>
-              <h3 style={styles.cardTitle}>{item.nombre_pieza}</h3>
-              <p style={styles.cardDesc}>{item.descripcion}</p>
-              <div style={styles.stock}>
-                Stock disponible: <strong>{item.cantidad_stock} unidades</strong>
-              </div>
-              
-              <div style={styles.actions}>
-                <button style={styles.btnReserva}>Solicitar Vale</button>
-
-                {/* REGLA DE NEGOCIO: Solo el Auxiliar ve opciones de edición */}
-                {user?.rol === 'auxiliar' && (
-                  <>
-                    <button style={styles.btnIcon} title="Editar"><Edit size={16} /></button>
-                    <button style={styles.btnIconRed} title="Eliminar"><Trash2 size={16} /></button>
-                  </>
-                )}
-              </div>
+        {productos.map(item => (
+          <div key={item.id} style={styles.card}>
+            <h3 style={styles.cardTitle}>{item.nombre_pieza}</h3>
+            <p style={styles.cardDesc}>{item.descripcion}</p>
+            <div style={styles.stock}>DISPONIBLE: <strong>{item.cantidad_stock} UNIDADES</strong></div>
+            <div style={styles.actions}>
+              <button onClick={() => solicitarPieza(item.id)} style={styles.btnReserva}>
+                <Send size={16} /> SOLICITAR VALE
+              </button>
+              {user?.rol === 'auxiliar' && (
+                <>
+                  <button style={styles.btnIcon}><Edit size={16} /></button>
+                  <button style={styles.btnIconRed}><Trash2 size={16} /></button>
+                </>
+              )}
             </div>
-          ))
-        ) : (
-          <p style={{ textAlign: 'center', gridColumn: '1/-1', color: '#666' }}>No hay piezas registradas en el catálogo.</p>
-        )}
+          </div>
+        ))}
       </div>
 
-      {/* --- MODAL PARA AGREGAR PIEZA --- */}
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-              <h3>Registrar Refacción</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0 }}>NUEVO REGISTRO</h3>
               <X onClick={() => setShowModal(false)} style={{ cursor: 'pointer' }} />
             </div>
-
             <form onSubmit={handleGuardar} style={styles.form}>
-              <label>Nombre de la pieza:</label>
-              <input 
-                type="text"
-                placeholder="Ej. Filtro de Aceite" 
-                value={nuevaPieza.nombre_pieza}
-                onChange={(e) => setNuevaPieza({...nuevaPieza, nombre_pieza: e.target.value})}
-                style={styles.input} required 
-              />
-              
-              <label>Descripción:</label>
-              <textarea 
-                placeholder="Detalles técnicos..." 
-                value={nuevaPieza.descripcion}
-                onChange={(e) => setNuevaPieza({...nuevaPieza, descripcion: e.target.value})}
-                style={{ ...styles.input, height: '80px' }} 
-              />
-              
-              <label>Cantidad en Almacén:</label>
-              <input 
-                type="number" 
-                min="0"
-                value={nuevaPieza.cantidad_stock}
-                onChange={(e) => setNuevaPieza({...nuevaPieza, cantidad_stock: e.target.value})}
-                style={styles.input} required 
-              />
-              
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" style={styles.btnGuardar}>Guardar en Railway</button>
-                <button type="button" onClick={() => setShowModal(false)} style={styles.btnCancelar}>Cancelar</button>
-              </div>
+              <input type="text" placeholder="Nombre de la refacción" onChange={(e) => setNuevaPieza({...nuevaPieza, nombre_pieza: e.target.value})} style={styles.input} required />
+              <textarea placeholder="Descripción técnica" onChange={(e) => setNuevaPieza({...nuevaPieza, descripcion: e.target.value})} style={{...styles.input, height: '100px'}} />
+              <input type="number" placeholder="Stock inicial" onChange={(e) => setNuevaPieza({...nuevaPieza, cantidad_stock: e.target.value})} style={styles.input} required />
+              <button type="submit" style={styles.btnConfirmar}>CONFIRMAR EN SISTEMA</button>
             </form>
           </div>
         </div>
@@ -148,28 +93,24 @@ const Catalogo = () => {
   );
 };
 
-// Objeto de Estilos
 const styles = {
-  container: { padding: '30px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: '2px solid #e5e7eb', paddingBottom: '20px' },
-  badge: { backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', textTransform: 'uppercase' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' },
-  card: { padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff', transition: 'box-shadow 0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
-  cardTitle: { margin: '0 0 10px 0', fontSize: '18px', color: '#111827' },
-  cardDesc: { color: '#6b7280', fontSize: '14px', marginBottom: '15px', minHeight: '40px' },
-  stock: { padding: '8px', backgroundColor: '#f9fafb', borderRadius: '6px', fontSize: '14px', marginBottom: '15px' },
-  actions: { display: 'flex', gap: '8px' },
-  btnAgregar: { backgroundColor: '#059669', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' },
-  btnReserva: { flex: 1, backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
-  btnIcon: { backgroundColor: '#f3f4f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' },
-  btnIconRed: { backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' },
-  // Estilos del Modal
-  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modal: { backgroundColor: 'white', padding: '25px', borderRadius: '15px', width: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
-  form: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  input: { padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', marginBottom: '10px', fontSize: '14px' },
-  btnGuardar: { flex: 2, backgroundColor: '#059669', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
-  btnCancelar: { flex: 1, backgroundColor: '#9ca3af', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer' }
+  container: { padding: '40px', maxWidth: '1200px', margin: '0 auto' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '2px solid #e5e7eb', paddingBottom: '20px' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '25px' },
+  card: { padding: '25px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #d1d5db', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' },
+  cardTitle: { margin: '0 0 10px 0', fontSize: '20px', fontWeight: 'bold', textTransform: 'uppercase' },
+  cardDesc: { color: '#6b7280', fontSize: '14px', marginBottom: '20px', height: '45px', overflow: 'hidden' },
+  stock: { padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '8px', fontSize: '13px', marginBottom: '20px', borderLeft: '5px solid #facc15' },
+  actions: { display: 'flex', gap: '10px' },
+  btnAgregar: { backgroundColor: '#000000', color: '#facc15', border: '2px solid #facc15', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' },
+  btnReserva: { flex: 1, backgroundColor: '#facc15', color: '#000000', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
+  btnIcon: { backgroundColor: '#e5e7eb', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' },
+  btnIconRed: { backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer' },
+  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 },
+  modal: { backgroundColor: 'white', padding: '30px', borderRadius: '15px', width: '450px' },
+  form: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  input: { padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px' },
+  btnConfirmar: { backgroundColor: '#000000', color: '#facc15', border: 'none', padding: '15px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' }
 };
 
 export default Catalogo;

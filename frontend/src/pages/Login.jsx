@@ -1,78 +1,74 @@
-import { useState } from 'react'; // Para manejar el estado del formulario
-import { apiUsuarios } from '../api/axios'; // Esta es la instancia de Axios configurada para el microservicio de Usuarios
-import { useNavigate } from 'react-router-dom'; // Para redirigir después del login
-import { LogIn, Wrench } from 'lucide-react'; // Iconos bonitos
+import { useState, useContext } from 'react';
+import { apiUsuarios } from '../api/axios';
+import { AuthContext } from '../context/AuthContext';
+import { Package, Lock, User } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
+    console.log("Intentando conectar al puerto 3001...");
+    
     try {
-      // 1. Llamada al microservicio de Usuarios (Puerto 3001)
-      const response = await apiUsuarios.post('/login', { email, password });
-      
-      // 2. Guardar Token y Datos en LocalStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const res = await apiUsuarios.post('/login', { email, password });
+      console.log("Servidor respondió:", res.data);
 
-      // 3. ¡Vámonos al catálogo!
-      navigate('/catalogo');
+      if (res.data.token) {
+        // Guardamos usuario y token
+        const userObj = res.data.usuario || res.data.user;
+        login(userObj, res.data.token);
+      } else {
+        alert("El servidor no envió el token de acceso.");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al conectar con el servidor');
+      console.error("Detalle del error:", err);
+      if (!err.response) {
+        alert("ERROR DE CONEXIÓN: ¿Está encendida la terminal del puerto 3001?");
+      } else {
+        alert("ACCESO DENEGADO: Revisa que el correo y contraseña existan en la BD.");
+      }
     }
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <Wrench size={48} color="#2563eb" />
-          <h2>Gestión de Refacciones</h2>
-          <p>Inicia sesión para acceder al inventario</p>
+      <div style={styles.loginCard}>
+        <div style={styles.logoSection}>
+          <Package size={60} color="#facc15" />
+          <h1 style={styles.title}>ALMACÉN<span style={{ color: '#facc15' }}>PRO</span></h1>
+          <p style={styles.subtitle}>SISTEMA DE GESTIÓN DE REFACCIONES</p>
         </div>
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <input 
-            type="email" 
-            placeholder="Correo electrónico" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <input 
-            type="password" 
-            placeholder="Contraseña" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            required
-          />
-          {error && <p style={styles.error}>{error}</p>}
-          
-          <button type="submit" style={styles.button}>
-            <LogIn size={20} /> Entrar al Sistema
-          </button>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <User size={20} style={styles.icon} />
+            <input type="email" placeholder="CORREO ELECTRÓNICO" onChange={(e) => setEmail(e.target.value)} style={styles.input} required />
+          </div>
+          <div style={styles.inputGroup}>
+            <Lock size={20} style={styles.icon} />
+            <input type="password" placeholder="CONTRASEÑA" onChange={(e) => setPassword(e.target.value)} style={styles.input} required />
+          </div>
+          <button type="submit" style={styles.btnLogin}>ACCEDER AL PANEL</button>
         </form>
       </div>
     </div>
   );
 };
 
-// Estilos rápidos para que no se vea feo
 const styles = {
-  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f3f4f6' },
-  card: { backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '350px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '15px' },
-  input: { padding: '12px', borderRadius: '6px', border: '1px solid #d1d5db' },
-  button: { padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 'bold' },
-  error: { color: '#dc2626', fontSize: '14px', textAlign: 'center' }
+  container: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f4f6' },
+  loginCard: { width: '400px', padding: '50px', backgroundColor: '#000', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', textAlign: 'center' },
+  logoSection: { marginBottom: '40px' },
+  title: { color: '#fff', margin: '10px 0 0 0', fontSize: '32px', fontWeight: '900' },
+  subtitle: { color: '#6b7280', fontSize: '10px', letterSpacing: '2px', fontWeight: 'bold' },
+  form: { display: 'flex', flexDirection: 'column', gap: '20px' },
+  inputGroup: { position: 'relative', display: 'flex', alignItems: 'center' },
+  icon: { position: 'absolute', left: '15px', color: '#facc15' },
+  input: { width: '100%', padding: '15px 15px 15px 50px', backgroundColor: '#1f2937', border: '2px solid #374151', borderRadius: '10px', color: '#fff', fontSize: '13px', outline: 'none' },
+  btnLogin: { backgroundColor: '#facc15', color: '#000', border: 'none', padding: '18px', borderRadius: '10px', fontWeight: '900', fontSize: '14px', cursor: 'pointer', letterSpacing: '1px' }
 };
 
 export default Login;

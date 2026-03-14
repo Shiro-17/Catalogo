@@ -1,9 +1,8 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
-import { Send, User, MessageCircle } from 'lucide-react';
+import { Send, MessageSquare } from 'lucide-react';
 
-// Conectamos con el microservicio de Chat (Puerto 3004)
 const socket = io('http://localhost:3004');
 
 const Chat = () => {
@@ -13,30 +12,16 @@ const Chat = () => {
   const scrollRef = useRef();
 
   useEffect(() => {
-    // Escuchar mensajes que llegan del servidor
-    socket.on('mensaje_recibido', (nuevoMensaje) => {
-      setListaMensajes((prev) => [...prev, nuevoMensaje]);
-    });
-
+    socket.on('mensaje_recibido', (nuevo) => { setListaMensajes((prev) => [...prev, nuevo]); });
     return () => socket.off('mensaje_recibido');
   }, []);
 
-  // Auto-scroll al último mensaje
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [listaMensajes]);
+  useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [listaMensajes]);
 
-  const enviarMensaje = (e) => {
+  const enviar = (e) => {
     e.preventDefault();
-    if (mensaje.trim() !== '') {
-      const data = {
-        texto: mensaje,
-        usuario: user.nombre,
-        rol: user.rol,
-        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      // "Gritar" el mensaje al servidor
+    if (mensaje.trim()) {
+      const data = { texto: mensaje, usuario: user.nombre, rol: user.rol, hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
       socket.emit('mensaje_enviado', data);
       setMensaje('');
     }
@@ -46,44 +31,26 @@ const Chat = () => {
     <div style={styles.container}>
       <div style={styles.chatBox}>
         <div style={styles.header}>
-          <MessageCircle size={24} />
-          <h3>Canal de Comunicación Almacén</h3>
+          <MessageSquare size={24} color="#facc15" />
+          <h3 style={{ margin: 0 }}>CANAL OPERATIVO</h3>
         </div>
 
         <div style={styles.messagesContainer}>
-          {listaMensajes.map((m, index) => (
-            <div 
-              key={index} 
-              style={{
-                ...styles.messageWrapper,
-                alignSelf: m.usuario === user.nombre ? 'flex-end' : 'flex-start'
-              }}
-            >
-              <span style={styles.username}>{m.usuario} ({m.rol})</span>
-              <div style={{
-                ...styles.bubble,
-                backgroundColor: m.usuario === user.nombre ? '#2563eb' : '#e5e7eb',
-                color: m.usuario === user.nombre ? 'white' : 'black'
-              }}>
+          {listaMensajes.map((m, i) => (
+            <div key={i} style={{ ...styles.wrapper, alignSelf: m.usuario === user.nombre ? 'flex-end' : 'flex-start' }}>
+              <span style={styles.sender}>{m.usuario} • {m.rol}</span>
+              <div style={{ ...styles.bubble, backgroundColor: m.usuario === user.nombre ? '#000000' : '#e5e7eb', color: m.usuario === user.nombre ? '#facc15' : '#000000' }}>
                 {m.texto}
-                <span style={styles.time}>{m.hora}</span>
+                <span style={{ ...styles.time, color: m.usuario === user.nombre ? '#ffffff88' : '#666' }}>{m.hora}</span>
               </div>
             </div>
           ))}
           <div ref={scrollRef} />
         </div>
 
-        <form onSubmit={enviarMensaje} style={styles.inputArea}>
-          <input 
-            type="text" 
-            placeholder="Escribe un mensaje..." 
-            value={mensaje}
-            onChange={(e) => setMensaje(e.target.value)}
-            style={styles.input}
-          />
-          <button type="submit" style={styles.btnSend}>
-            <Send size={20} />
-          </button>
+        <form onSubmit={enviar} style={styles.inputArea}>
+          <input type="text" placeholder="Escribe un reporte o consulta..." value={mensaje} onChange={(e) => setMensaje(e.target.value)} style={styles.input} />
+          <button type="submit" style={styles.btnSend}><Send size={20} /></button>
         </form>
       </div>
     </div>
@@ -91,17 +58,17 @@ const Chat = () => {
 };
 
 const styles = {
-  container: { display: 'flex', justifyContent: 'center', padding: '20px', height: '80vh' },
-  chatBox: { width: '100%', maxWidth: '600px', backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', overflow: 'hidden' },
-  header: { padding: '15px', backgroundColor: '#1e293b', color: 'white', display: 'flex', alignItems: 'center', gap: '10px' },
-  messagesContainer: { flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#f8fafc' },
-  messageWrapper: { display: 'flex', flexDirection: 'column', maxWidth: '70%' },
-  username: { fontSize: '12px', color: '#64748b', marginBottom: '4px', fontWeight: 'bold' },
-  bubble: { padding: '10px 15px', borderRadius: '15px', fontSize: '14px', position: 'relative' },
-  time: { fontSize: '10px', display: 'block', marginTop: '5px', opacity: 0.7, textAlign: 'right' },
-  inputArea: { padding: '15px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px' },
-  input: { flex: 1, padding: '10px', borderRadius: '20px', border: '1px solid #cbd5e1', outline: 'none' },
-  btnSend: { backgroundColor: '#2563eb', color: 'white', border: 'none', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+  container: { display: 'flex', justifyContent: 'center', padding: '40px', height: 'calc(100vh - 150px)' },
+  chatBox: { width: '100%', maxWidth: '800px', backgroundColor: 'white', borderRadius: '15px', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', overflow: 'hidden', border: '1px solid #e5e7eb' },
+  header: { padding: '20px', backgroundColor: '#000000', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '15px' },
+  messagesContainer: { flex: 1, padding: '25px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: '#f9fafb' },
+  wrapper: { display: 'flex', flexDirection: 'column', maxWidth: '70%' },
+  sender: { fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '5px', textTransform: 'uppercase' },
+  bubble: { padding: '12px 18px', borderRadius: '18px', fontSize: '14px', position: 'relative', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
+  time: { fontSize: '10px', display: 'block', marginTop: '5px', textAlign: 'right' },
+  inputArea: { padding: '20px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '15px', backgroundColor: 'white' },
+  input: { flex: 1, padding: '12px 20px', borderRadius: '30px', border: '2px solid #e5e7eb', outline: 'none', fontSize: '14px' },
+  btnSend: { backgroundColor: '#000000', color: '#facc15', border: 'none', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
 
 export default Chat;

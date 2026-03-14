@@ -7,10 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Al cargar la app, revisamos si ya había alguien logueado en la "mochila" (localStorage)
+    // Agregamos una validación para evitar el SyntaxError
     const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    
+    if (savedUser && savedUser !== "undefined") {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error("Error parseando el usuario del localStorage", error);
+        localStorage.removeItem('user'); // Limpiamos si está corrupto
+      }
     }
     setLoading(false);
   }, []);

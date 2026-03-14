@@ -1,74 +1,70 @@
 import { useEffect, useState, useContext } from 'react';
 import { apiReservas } from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
-import { Ticket, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { Ticket, Trash2, CheckCircle, Clock, Hash } from 'lucide-react';
 
 const Reservas = () => {
   const [vales, setVales] = useState([]);
   const { user } = useContext(AuthContext);
 
-  useEffect(() => {
-    cargarVales();
-  }, []);
+  useEffect(() => { cargarVales(); }, []);
 
   const cargarVales = async () => {
     try {
       const res = await apiReservas.get('/');
       setVales(res.data);
-    } catch (err) {
-      console.error("Error al cargar vales", err);
-    }
+    } catch (err) { console.error("Error al cargar vales", err); }
   };
 
-  const cancelarVale = async (id) => {
-    if (window.confirm("¿Seguro que quieres eliminar este vale?")) {
+  const eliminarVale = async (id) => {
+    if (window.confirm("¿Confirmar eliminación de registro de reserva?")) {
       try {
         await apiReservas.delete(`/${id}`);
         cargarVales();
-      } catch (err) {
-        alert("No tienes permiso para eliminar vales.");
-      }
+      } catch (err) { alert("Acceso restringido: Solo nivel Auxiliar."); }
     }
   };
 
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <h2><Ticket color="#f59e0b" /> Historial de Vales (Reservas)</h2>
-        <p>Aquí se gestionan las salidas de almacén con folios <strong>NanoID</strong>.</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={styles.iconBox}><Ticket size={30} color="#000" /></div>
+          <div>
+            <h2 style={{ margin: 0, letterSpacing: '1px' }}>CONTROL DE VALES</h2>
+            <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>Registros con folios únicos NanoID</p>
+          </div>
+        </div>
       </header>
 
       <div style={styles.tableContainer}>
         <table style={styles.table}>
           <thead>
-            <tr>
-              <th>Folio Único (NanoID)</th>
-              <th>Usuario</th>
-              <th>Estado</th>
-              {user?.rol === 'auxiliar' && <th>Acciones</th>}
+            <tr style={styles.headerRow}>
+              <th style={styles.th}><Hash size={14}/> FOLIO ÚNICO</th>
+              <th style={styles.th}>ID SOLICITANTE</th>
+              <th style={styles.th}>ESTADO</th>
+              {user?.rol === 'auxiliar' && <th style={styles.th}>ACCIONES</th>}
             </tr>
           </thead>
           <tbody>
             {vales.map((vale) => (
-              <tr key={vale.id}>
+              <tr key={vale.id} style={styles.row}>
                 <td style={styles.folio}>{vale.id}</td>
-                <td>Usuario #{vale.id_usuario}</td>
-                <td>
+                <td style={styles.td}>ID-{vale.id_usuario}</td>
+                <td style={styles.td}>
                   <span style={{
                     ...styles.status,
-                    backgroundColor: vale.estado === 'pendiente' ? '#fef3c7' : '#dcfce7',
-                    color: vale.estado === 'pendiente' ? '#92400e' : '#166534'
+                    backgroundColor: vale.estado === 'pendiente' ? '#000' : '#facc15',
+                    color: vale.estado === 'pendiente' ? '#facc15' : '#000'
                   }}>
-                    {vale.estado === 'pendiente' ? <Clock size={14}/> : <CheckCircle size={14}/>}
-                    {vale.estado}
+                    {vale.estado === 'pendiente' ? <Clock size={12}/> : <CheckCircle size={12}/>}
+                    {vale.estado.toUpperCase()}
                   </span>
                 </td>
                 {user?.rol === 'auxiliar' && (
-                  <td>
-                    <button 
-                      onClick={() => cancelarVale(vale.id)} 
-                      style={styles.btnDelete}
-                    >
+                  <td style={styles.td}>
+                    <button onClick={() => eliminarVale(vale.id)} style={styles.btnDelete}>
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -83,14 +79,17 @@ const Reservas = () => {
 };
 
 const styles = {
-  container: { padding: '30px', maxWidth: '1000px', margin: '0 auto' },
-  header: { marginBottom: '30px', borderBottom: '2px solid #eee', paddingBottom: '10px' },
-  tableContainer: { backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-  folio: { fontFamily: 'monospace', fontWeight: 'bold', color: '#2563eb', fontSize: '1.1em' },
-  status: { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', textTransform: 'capitalize' },
-  btnDelete: { backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }
+  container: { padding: '40px', maxWidth: '1100px', margin: '0 auto' },
+  header: { marginBottom: '35px', borderBottom: '4px solid #000', paddingBottom: '15px' },
+  iconBox: { backgroundColor: '#facc15', padding: '10px', borderRadius: '8px' },
+  tableContainer: { backgroundColor: 'white', borderRadius: '4px', border: '2px solid #000', overflow: 'hidden' },
+  table: { width: '100%', borderCollapse: 'collapse' },
+  headerRow: { backgroundColor: '#000' },
+  th: { padding: '15px', textAlign: 'left', color: '#facc15', fontSize: '12px', fontWeight: '900' },
+  td: { padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#111', fontSize: '14px' },
+  folio: { padding: '15px', borderBottom: '1px solid #e5e7eb', fontFamily: 'monospace', fontWeight: 'bold', color: '#000', fontSize: '15px' },
+  status: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: '900' },
+  btnDelete: { backgroundColor: '#000', color: '#facc15', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }
 };
 
-// Asegúrate de añadir padding y bordes a los th y td en tu CSS global o aquí mismo
 export default Reservas;
