@@ -11,4 +11,5 @@ router.get('/', getCatalogo);
 router.post('/', [verificarToken, esAuxiliar], agregarRefaccion);
 router.put('/:id', [verificarToken, esAuxiliar], editarRefaccion);
 
+// ⚠️ ESTO ES LO QUE LE FALTABA:
 export default router;

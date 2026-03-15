@@ -1,4 +1,10 @@
 {
+  "name": "gestion-almacen-refacciones",
+  "version": "1.0.0",
+  "main": "start-all.js",
+  "scripts": {
+    "start": "node start-all.js"
+  },
   "dependencies": {
     "concurrently": "^9.2.1"
   }

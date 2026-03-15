@@ -5,6 +5,17 @@ import { customAlphabet } from 'nanoid';
 const alfabeto = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const generarIdReserva = customAlphabet(alfabeto, 10);
 
+// Controladores para el servicio de reservas
+export const getCatalogo = async (req, res) => {
+    try {
+        // Traemos explícitamente el id
+        const [items] = await pool.query('SELECT id, nombre_pieza, descripcion, cantidad_stock FROM catalogo');
+        res.json(items);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // 1. Crear una nueva reserva (Vale)
 export const crearReserva = async (req, res) => {
     const { id_pieza, cantidad_solicitada } = req.body;
@@ -41,10 +52,13 @@ export const eliminarReserva = async (req, res) => {
 
 // 3. Consultar todas las reservas
 export const getReservas = async (req, res) => {
+    console.log("🚀 El controlador getReservas ha sido activado..."); // <-- Agrega esto
     try {
         const [rows] = await pool.query('SELECT * FROM reservas');
+        console.log(`📦 Datos obtenidos de la DB: ${rows.length} filas`);
         res.json(rows);
     } catch (error) {
+        console.error("❌ Error en getReservas:", error.message);
         res.status(500).json({ error: error.message });
     }
 };

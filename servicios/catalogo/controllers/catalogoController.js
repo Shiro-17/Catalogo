@@ -1,16 +1,22 @@
 import pool from '../db.js';
 
-// 1. Ver todo el catálogo (Cualquiera puede)
+// 1. Obtener catálogo completo
 export const getCatalogo = async (req, res) => {
     try {
-        const [items] = await pool.query('SELECT * FROM catalogo');
+        // Seleccionamos explícitamente el 'id' para evitar que se pierda en el mapeo
+        const [items] = await pool.query('SELECT id, nombre_pieza, descripcion, cantidad_stock FROM catalogo');
+        
+        // Log para que veas en tu terminal de la HP EliteBook qué estás enviando
+        console.log(`📦 Enviando ${items.length} productos al frontend`);
+        
         res.json(items);
     } catch (error) {
+        console.error("❌ Error en getCatalogo:", error.message);
         res.status(500).json({ error: error.message });
     }
 };
 
-// 2. Agregar nueva refacción (Solo el Auxiliar)
+// 2. Agregar refacción (Mantenlo igual)
 export const agregarRefaccion = async (req, res) => {
     const { nombre_pieza, descripcion, cantidad_stock } = req.body;
     try {
@@ -18,7 +24,7 @@ export const agregarRefaccion = async (req, res) => {
             'INSERT INTO catalogo (nombre_pieza, descripcion, cantidad_stock) VALUES (?, ?, ?)',
             [nombre_pieza, descripcion, cantidad_stock]
         );
-        res.status(201).json({ message: "Refacción añadida al inventario" });
+        res.status(201).json({ message: "Refacción añadida" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

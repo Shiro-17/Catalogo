@@ -2,43 +2,40 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from './db.js';
+import 'dotenv/config';
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
-// Creamos el servidor HTTP a partir de la app de Express
-const httpServer = createServer(app);
+const server = createServer(app);
+const io = new Server(server, {
+    cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
+});
 
-// Configuramos Socket.io con CORS para que el Frontend pueda conectarse
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*", // En producción pondrías la URL de tu frontend
-        methods: ["GET", "POST"]
+// Endpoint de historial
+app.get('/api/chat/historial', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM mensajes_chat ORDER BY fecha ASC');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Lógica de Socket.io
 io.on('connection', (socket) => {
-    console.log(`👤 Usuario conectado: ${socket.id}`);
+    console.log('✅ Cliente conectado');
 
-    // Escuchar cuando alguien envía un mensaje
-    socket.on('mensaje_enviado', (data) => {
-        console.log('Nuevo mensaje:', data);
-        
-        // Reenviar el mensaje a TODOS los conectados (incluyendo el que lo envió)
-        // data suele ser { usuario: "Juan", texto: "Hola!", rol: "auxiliar" }
-        io.emit('mensaje_recibido', data);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('👤 Usuario desconectado');
+    socket.on('enviar_mensaje', async (datos) => {
+        try {
+            await pool.query('INSERT INTO mensajes_chat (usuario, mensaje) VALUES (?, ?)', 
+            [datos.usuario, datos.mensaje]);
+            io.emit('recibir_mensaje', datos); 
+        } catch (err) {
+            console.error(err);
+        }
     });
 });
 
-const PORT = process.env.PORT || 3004;
-httpServer.listen(PORT, () => {
-    console.log(`💬 Servidor de Chat activo en puerto ${PORT}`);
-});
+server.listen(3004, () => console.log('🚀 Chat en puerto 3004'));

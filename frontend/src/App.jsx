@@ -3,9 +3,9 @@ import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
-import Catalogo from './pages/Catalogo';
-import Reservas from './pages/Reservas';
-import Chat from './pages/Chat';
+import Catalogo from './pages/Catalogo/Catalogo';
+import Reservas from './pages/Reservas/Reservas';
+import Chat from './pages/Chat/Chat';
 
 function App() {
   const { user } = useContext(AuthContext);
